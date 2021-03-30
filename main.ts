@@ -1,11 +1,16 @@
+// Express backend framework.
 const express = require('express');
+// axios for getting data from the api.
 const axios = require('axios');
+// redis for saving the cache on the user machine.
 const redis = require('redis');
 const app = express();
 const url: string = 'https://jobs.github.com/positions.json?search=node.js';
+// redis uses port number 6379 as the default port.
 const redisPort: number = 6379;
 const client = redis.createClient(redisPort);
 
+// if redis encounters an error then it is printed in the console.
 client.on('error', error => {
   console.log(error);
 });
@@ -13,6 +18,7 @@ client.on('error', error => {
 app.get('/jobs', async (req, res) => {
   const query = req.query.search;
   try {
+    // check whether the given call is cached in the memory or not.
     client.get(query, async (error, jobs) => {
       if (error) throw error;
 
@@ -25,6 +31,7 @@ app.get('/jobs', async (req, res) => {
         const jobs = await axios.get(
           `https://jobs.github.com/positions.json?search=${query}`
         );
+        // if redis doesnt have the data then it gets stored as cache.
         client.setex(query, 600, JSON.stringify(jobs.data));
         res.status(200).send({
           jobs: jobs.data,
